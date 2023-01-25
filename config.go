@@ -26,6 +26,13 @@ const (
 	defaultMaxServiceResponseSize = 1024 * 1024
 )
 
+var cfgLog = log.New()
+
+func init() {
+	cfgLog.SetLevel(log.InfoLevel)
+	cfgLog.SetFormatter(&log.JSONFormatter{TimestampFormat: time.RFC3339Nano})
+}
+
 var (
 	defaultAddressGateway = "0.0.0.0:" + strconv.Itoa(defaultPortGateway)
 	defaultAddressPrivate = "0.0.0.0:" + strconv.Itoa(defaultPortPrivate)
@@ -127,6 +134,15 @@ func (c *Config) handleConfigFile(f string) error {
 
 // Load loads or reloads all the config files.
 func (c *Config) Load() error {
+	return c.load(false)
+}
+
+// Reload reloads all the config files.
+func (c *Config) Reload() error {
+	return c.load(true)
+}
+
+func (c *Config) load(isReload bool) error {
 	prevLogLevel := c.LogLevel
 
 	c.Extensions = nil
@@ -149,15 +165,16 @@ func (c *Config) Load() error {
 		if level, err := log.ParseLevel(logLevel); err == nil {
 			c.LogLevel = level
 		} else {
-			log.WithField("loglevel", logLevel).Warn("invalid loglevel; using default")
+			cfgLog.WithField("loglevel", logLevel).Warn("invalid loglevel; using default")
 			c.LogLevel = defaultLogLevel
 		}
 	}
 
-	if prevLogLevel != c.LogLevel {
-		log.WithField("loglevel", logLevel).Log(c.LogLevel, "log level changed")
+	if isReload && prevLogLevel != c.LogLevel {
+		cfgLog.WithField("from", prevLogLevel.String()).
+			WithField("to", c.LogLevel.String()).
+			Info("log level has changed")
 	}
-
 	log.SetLevel(c.LogLevel)
 
 	var err error
@@ -209,9 +226,9 @@ func (c *Config) Watch() {
 		case err := <-c.watcher.Errors:
 			log.WithError(err).Error("config watch error")
 		case e := <-c.watcher.Events:
-			log.WithFields(log.Fields{"event": e, "files": c.configFiles, "links": c.linkedFiles}).Debug("received config file event")
 			shouldUpdate := false
 			for i := range c.configFiles {
+				log.WithFields(log.Fields{"event": e, "files": c.configFiles, "links": c.linkedFiles}).Debug("received config file event")
 				// we want to reload the config if:
 				// - the config file was updated, or
 				// - the config file is a symlink and was changed (k8s config map update)
@@ -228,7 +245,7 @@ func (c *Config) Watch() {
 			}
 
 			if !shouldUpdate {
-				log.Debug("nothing to update")
+				log.Debug("no configuration file reload needed")
 				continue
 			}
 
@@ -237,16 +254,16 @@ func (c *Config) Watch() {
 				continue
 			}
 
-			err := c.Load()
+			err := c.Reload()
 			if err != nil {
-				log.WithError(err).Error("error reloading config")
+				cfgLog.WithError(err).Error("watcher failed reloading config")
 			}
-			log.WithField("services", c.Services).Info("config file updated")
+			cfgLog.WithField("services", c.Services).Info(c.LogLevel, "watcher reloaded configuration")
 			err = c.executableSchema.UpdateServiceList(c.Services)
 			if err != nil {
-				log.WithError(err).Error("error updating services")
+				cfgLog.WithError(err).Error("watcher failed updating services")
 			}
-			log.WithField("services", c.Services).Info("updated services")
+			cfgLog.WithField("services", c.Services).Info(c.LogLevel, "watcher updated services")
 		}
 	}
 }
@@ -329,7 +346,10 @@ func (c *Config) Init() error {
 		plugin.Init(c.executableSchema)
 		pluginsNames = append(pluginsNames, plugin.ID())
 	}
-	log.Infof("enabled plugins: %v", pluginsNames)
+
+	if len(pluginsNames) > 0 {
+		cfgLog.WithField("plugins", pluginsNames).Info("plugins enabled")
+	}
 
 	return nil
 }
