@@ -6,12 +6,33 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	log "github.com/sirupsen/logrus"
 )
+
+const (
+	defaultLogLevel = log.DebugLevel
+
+	defaultPollIntervalString = "10s"
+
+	defaultPortGateway = 8082
+	defaultPortPrivate = 8083
+	defaultPortMetrics = 9099
+
+	defaultMaxServiceResponseSize = 1024 * 1024
+)
+
+var (
+	defaultAddressGateway = "0.0.0.0:" + strconv.Itoa(defaultPortGateway)
+	defaultAddressPrivate = "0.0.0.0:" + strconv.Itoa(defaultPortPrivate)
+	defaultAddressMetrics = "0.0.0.0:" + strconv.Itoa(defaultPortMetrics)
+)
+
+const envBrambleLogLevel = "BRAMBLE_LOG_LEVEL"
 
 var Version = "dev"
 
@@ -50,6 +71,18 @@ type Config struct {
 	linkedFiles      []string
 }
 
+func newConfig() *Config {
+	return &Config{
+		GatewayPort:            defaultPortGateway,
+		PrivatePort:            defaultPortPrivate,
+		MetricsPort:            defaultPortMetrics,
+		LogLevel:               defaultLogLevel,
+		PollInterval:           defaultPollIntervalString,
+		MaxRequestsPerQuery:    50,
+		MaxServiceResponseSize: defaultMaxServiceResponseSize,
+	}
+}
+
 func (c *Config) addrOrPort(addr string, port int) string {
 	if addr != "" {
 		return addr
@@ -79,20 +112,29 @@ func (c *Config) MetricAddress() string {
 	return c.addrOrPort(c.MetricsListenAddress, c.MetricsPort)
 }
 
+func (c *Config) handleConfigFile(f string) error {
+	fp, err := os.Open(f)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = fp.Close() }()
+
+	if err := json.NewDecoder(fp).Decode(&c); err != nil {
+		return fmt.Errorf("error decoding config file %q: %w", f, err)
+	}
+	return nil
+}
+
 // Load loads or reloads all the config files.
 func (c *Config) Load() error {
+	prevLogLevel := c.LogLevel
+
 	c.Extensions = nil
 	// concatenate plugins from all the config files
 	var plugins []PluginConfig
 	for _, configFile := range c.configFiles {
-		c.Plugins = nil
-		f, err := os.Open(configFile)
-		if err != nil {
+		if err := c.handleConfigFile(configFile); err != nil {
 			return err
-		}
-		defer f.Close()
-		if err := json.NewDecoder(f).Decode(&c); err != nil {
-			return fmt.Errorf("error decoding config file %q: %w", configFile, err)
 		}
 		plugins = append(plugins, c.Plugins...)
 	}
@@ -102,12 +144,20 @@ func (c *Config) Load() error {
 		IdFieldName = c.IdFieldName
 	}
 
-	logLevel := os.Getenv("BRAMBLE_LOG_LEVEL")
-	if level, err := log.ParseLevel(logLevel); err == nil {
-		c.LogLevel = level
-	} else if logLevel != "" {
-		log.WithField("loglevel", logLevel).Warn("invalid loglevel")
+	logLevel, ok := os.LookupEnv(envBrambleLogLevel)
+	if ok {
+		if level, err := log.ParseLevel(logLevel); err == nil {
+			c.LogLevel = level
+		} else {
+			log.WithField("loglevel", logLevel).Warn("invalid loglevel; using default")
+			c.LogLevel = defaultLogLevel
+		}
 	}
+
+	if prevLogLevel != c.LogLevel {
+		log.WithField("loglevel", logLevel).Log(c.LogLevel, "log level changed")
+	}
+
 	log.SetLevel(c.LogLevel)
 
 	var err error
@@ -218,22 +268,15 @@ func GetConfig(configFiles []string) (*Config, error) {
 		linkedFiles = append(linkedFiles, linkedFile)
 	}
 
-	cfg := Config{
-		GatewayPort:            8082,
-		PrivatePort:            8083,
-		MetricsPort:            9009,
-		LogLevel:               log.DebugLevel,
-		PollInterval:           "10s",
-		MaxRequestsPerQuery:    50,
-		MaxServiceResponseSize: 1024 * 1024,
+	cfg := newConfig()
+	cfg.watcher = watcher
+	cfg.configFiles = configFiles
+	cfg.linkedFiles = linkedFiles
 
-		watcher:     watcher,
-		configFiles: configFiles,
-		linkedFiles: linkedFiles,
+	if err := cfg.Load(); err != nil {
+		return nil, err
 	}
-	err = cfg.Load()
-
-	return &cfg, err
+	return cfg, nil
 }
 
 // ConfigurePlugins calls the Configure method on each plugin.

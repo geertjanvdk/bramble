@@ -12,8 +12,8 @@ Sample configuration:
   "gateway-port": 8082,
   "private-port": 8083,
   "metrics-port": 9009,
-  "log-level": "info",
-  "poll-interval": "5s",
+  "loglevel": "info",
+  "poll-interval": "10s",
   "max-requests-per-query": 50,
   "max-client-response-size": 1048576,
   "id-field-name": "id",
@@ -41,29 +41,49 @@ Sample configuration:
   - Configurable also by `BRAMBLE_SERVICE_LIST` environment variable set to a space separated list of urls which will be appended to the list
 
 - `gateway-port`: public port for the gateway, this is where the query endpoint
-  is exposed. Plugins can expose additional endpoints on this port.
+  is exposed. Plugins can expose additional endpoints on this port. This is an alternative for `gateway-address`.
 
   - Default: 8082
   - Supports hot-reload: No
 
+- `gateway-address`: address and port to use for the gateway; this is where the query endpoint
+  is exposed. Plugins can expose additional endpoints on this port. This is an alternative for `gateway-port`.
+
+  - Default: 0.0.0.0:8082
+  - Supports hot-reload: No
+
 - `private-port`: A port for plugins to expose private endpoints. Not used by default.
+  This is an alternative for `private-port`.
 
   - Default: 8083
   - Supports hot-reload: No
 
+- `private-address`: address and port to expose private endpoints. Not used by default.
+  This is an alternative for `private-port`.
+
+  - Default: 0.0.0.0:8083
+  - Supports hot-reload: No
+
 - `metrics-port`: Port used to expose Prometheus metrics.
+  This is an alternative for `metrics-address`.
 
   - Default: 9009
   - Supports hot-reload: No
 
-- `log-level`: Log level, one of `debug`|`info`|`error`|`fatal`.
+- `metrics-address`: address and port to expose Prometheus metrics.
+  This is an alternative for `metrics-port`.
+
+  - Default: 0.0.0.0:9009
+  - Supports hot-reload: No
+
+- `loglevel`: Log level, one of `debug`|`info`|`error`|`fatal`.
 
   - Default: `debug`
   - Supports hot-reload: Yes
 
 - `poll-interval`: Interval at which federated services are polled (`service` query is called).
 
-  - Default: `5s`
+  - Default: `10s`
   - Supports hot-reload: No
 
 - `max-requests-per-query`: Maximum number of requests to federated services
