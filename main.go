@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	gqlgenerrcode "github.com/99designs/gqlgen/graphql/errcode"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,8 @@ func Main() {
 	flag.Parse()
 
 	log.SetFormatter(&log.JSONFormatter{TimestampFormat: time.RFC3339Nano})
+
+	gqlgenerrcode.RegisterErrorType(gqlgenerrcode.ValidationFailed, gqlgenerrcode.KindUser)
 
 	cfg, err := GetConfig(configFiles)
 	if err != nil {
