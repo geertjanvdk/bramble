@@ -15,6 +15,7 @@ const (
 	serviceRootFieldName   = "service"
 	boundaryDirectiveName  = "boundary"
 	namespaceDirectiveName = "namespace"
+	skipMergeDirectiveName = "skipMerge"
 
 	queryObjectName        = "Query"
 	mutationObjectName     = "Mutation"

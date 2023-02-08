@@ -157,6 +157,10 @@ func mergeTypes(a, b map[string]*ast.Definition) (map[string]*ast.Definition, er
 			continue
 		}
 
+		if isSkippingMergeObject(&newVB) || isSkippingMergeObject(va) {
+			continue
+		}
+
 		if !hasFederationDirectives(&newVB) || !hasFederationDirectives(va) {
 			if k != queryObjectName && k != mutationObjectName {
 				if newVB.Kind == ast.Interface {
@@ -387,7 +391,7 @@ func cleanFields(fields ast.FieldList) ast.FieldList {
 
 func allowedDirective(name string) bool {
 	switch name {
-	case boundaryDirectiveName, namespaceDirectiveName, "skip", "include", "deprecated":
+	case boundaryDirectiveName, namespaceDirectiveName, "skip", "include", "deprecated", skipMergeDirectiveName:
 		return true
 	default:
 		return false
@@ -430,6 +434,10 @@ func isQueryType(a *ast.Definition) bool {
 
 func isBoundaryObject(a *ast.Definition) bool {
 	return a.Directives.ForName(boundaryDirectiveName) != nil
+}
+
+func isSkippingMergeObject(a *ast.Definition) bool {
+	return a.Directives.ForName(skipMergeDirectiveName) != nil
 }
 
 func isBoundaryField(f *ast.FieldDefinition) bool {
