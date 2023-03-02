@@ -107,8 +107,13 @@ func addRequestBody(e *event, r *http.Request, buf bytes.Buffer) {
 	if r.Method != http.MethodHead &&
 		r.Method != http.MethodGet &&
 		contentType == "application/json" {
-		var payload interface{}
+		var payload map[string]interface{}
 		if err := json.Unmarshal(buf.Bytes(), &payload); err == nil {
+			if _, ok := payload["query"]; ok {
+				if query, ok := payload["query"].(string); ok {
+					payload["query"] = strings.Replace(query, "\n", "", -1)
+				}
+			}
 			e.addField("request.body", &payload)
 		} else {
 			e.addField("request.body", buf.String())
