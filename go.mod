@@ -39,3 +39,9 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0 // indirect
 )
+
+require (
+	github.com/golistic/gomake v0.9.3 // indirect
+	github.com/golistic/shieldbadger v0.0.0-20230223210348-5649a4ba6aa9 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+)
