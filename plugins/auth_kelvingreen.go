@@ -9,23 +9,23 @@ import (
 )
 
 func init() {
-	bramble.RegisterPlugin(&AuthKratos{})
+	bramble.RegisterPlugin(&AuthKelvinGreen{})
 }
 
-type AuthKratosConfig struct {
+type AuthKelvinGreenConfig struct {
 	TokenLength int `json:"tokenLength"`
 }
 
-type AuthKratos struct {
+type AuthKelvinGreen struct {
 	bramble.BasePlugin
-	config AuthKratosConfig
+	config AuthKelvinGreenConfig
 }
 
-func (p *AuthKratos) ID() string {
-	return "auth_kratos"
+func (p *AuthKelvinGreen) ID() string {
+	return "auth_kelvingreen"
 }
 
-func (p *AuthKratos) ApplyMiddlewarePublicMux(h http.Handler) http.Handler {
+func (p *AuthKelvinGreen) ApplyMiddlewarePublicMux(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		ab := r.Header.Get("Authorization")
 		ctx := r.Context()
@@ -44,7 +44,7 @@ func (p *AuthKratos) ApplyMiddlewarePublicMux(h http.Handler) http.Handler {
 	})
 }
 
-func (p *AuthKratos) Configure(_ *bramble.Config, data json.RawMessage) error {
+func (p *AuthKelvinGreen) Configure(_ *bramble.Config, data json.RawMessage) error {
 	err := json.Unmarshal(data, &p.config)
 	if err != nil {
 		return err

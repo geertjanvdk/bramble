@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gofrs/uuid"
+
 	"github.com/movio/bramble"
 )
 
@@ -22,7 +23,7 @@ func (p *RequestIdentifierPlugin) ID() string {
 }
 
 func (p *RequestIdentifierPlugin) middleware(h http.Handler) http.HandlerFunc {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	return func(rw http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get(BrambleRequestHeader)
 		if requestID == "" {
 			requestID = uuid.Must(uuid.NewV4()).String()
@@ -31,7 +32,7 @@ func (p *RequestIdentifierPlugin) middleware(h http.Handler) http.HandlerFunc {
 		ctx := r.Context()
 		ctx = bramble.AddOutgoingRequestsHeaderToContext(ctx, BrambleRequestHeader, requestID)
 		h.ServeHTTP(rw, r.WithContext(ctx))
-	})
+	}
 }
 
 func (p *RequestIdentifierPlugin) ApplyMiddlewarePublicMux(h http.Handler) http.Handler {
