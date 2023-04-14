@@ -52,6 +52,7 @@ type PluginConfig struct {
 // Config contains the gateway configuration
 type Config struct {
 	IdFieldName            string    `json:"id-field-name"`
+	IdFieldType            string    `json:"id-field-type"`
 	GatewayListenAddress   string    `json:"gateway-address"`
 	DisableIntrospection   bool      `json:"disable-introspection"`
 	MetricsListenAddress   string    `json:"metrics-address"`
@@ -158,6 +159,7 @@ func (c *Config) load(isReload bool) error {
 
 	if strings.TrimSpace(c.IdFieldName) != "" {
 		IdFieldName = c.IdFieldName
+		IdFieldType = c.IdFieldType
 	}
 
 	logLevel, ok := os.LookupEnv(envBrambleLogLevel)

@@ -384,11 +384,11 @@ func validateBoundaryObjectsFormat(schema *ast.Schema) error {
 
 		idField := t.Fields.ForName(IdFieldName)
 		if idField == nil {
-			return fmt.Errorf(`missing "%s: ID!" field in boundary type %q`, IdFieldName, t.Name)
+			return fmt.Errorf(`missing "%s: %s" field in boundary type %q`, IdFieldName, IdFieldType, t.Name)
 		}
 
-		if idField.Type.String() != "ID!" {
-			return fmt.Errorf(`%q field should have type "ID!" in boundary type %q`, IdFieldName, t.Name)
+		if idField.Type.String() != IdFieldType {
+			return fmt.Errorf(`%q field should have type "%s" in boundary type %q`, IdFieldName, IdFieldType, t.Name)
 		}
 	}
 
@@ -426,8 +426,8 @@ func validateBoundaryQuery(f *ast.FieldDefinition) error {
 	}
 
 	// regular type check
-	if f.Arguments[0].Type.String() != "ID!" {
-		return fmt.Errorf(`boundary query must accept an argument of type "ID!"`)
+	if f.Arguments[0].Type.String() != IdFieldType {
+		return fmt.Errorf(`boundary query must accept an argument of type "%s"`, IdFieldType)
 	}
 
 	if f.Type.NonNull {

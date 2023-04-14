@@ -7,6 +7,7 @@ import (
 )
 
 var IdFieldName = "id"
+var IdFieldType = "ID!"
 
 const (
 	nodeRootFieldName      = "node"
