@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/movio/bramble"
 	"github.com/rs/cors"
@@ -36,7 +38,15 @@ func (p *CorsPlugin) ID() string {
 }
 
 func (p *CorsPlugin) Configure(cfg *bramble.Config, data json.RawMessage) error {
-	return json.Unmarshal(data, &p.config)
+	if err := json.Unmarshal(data, &p.config); err != nil {
+		return err
+	}
+
+	if s, ok := os.LookupEnv("BRAMBLE_CORS_ALLOWED_ORIGINS"); ok {
+		p.config.AllowedOrigins = strings.Split(s, ",")
+	}
+
+	return nil
 }
 
 func (p *CorsPlugin) middleware(h http.Handler) http.Handler {
