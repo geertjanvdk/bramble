@@ -32,7 +32,7 @@ func (p *AuthKelvinGreen) ApplyMiddlewarePublicMux(h http.Handler) http.Handler 
 
 		parts := strings.Split(ab, "Bearer ")
 		if len(parts) == 2 {
-			if len(parts[1]) != p.config.TokenLength {
+			if p.config.TokenLength > 0 && len(parts[1]) != p.config.TokenLength {
 				writeGraphqlError(rw, "invalid authorization")
 				return
 			}
